@@ -29,7 +29,7 @@ class WhisperService:
         result = self.model.transcribe(
             audio_path,
             fp16=torch.cuda.is_available(),
-            language="hi",
+            language="en",
             task="transcribe",
             temperature=0.0
         )

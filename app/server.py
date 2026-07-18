@@ -13,7 +13,6 @@ requirements.txt), e.g.:
 Then open http://localhost:8000 in your browser.
 """
 
-import email
 import os
 import time
 import uuid
@@ -61,7 +60,7 @@ os.makedirs(RECORDINGS_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # ---------------------------------------------------------------------
-# App + models (loaded once at startup, shared across requests)
+# App
 # ---------------------------------------------------------------------
 
 app = FastAPI(title="Manasvi AI")
@@ -73,22 +72,81 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-print("\nLoading Manasvi pipeline (this can take a while on first run)...\n")
+print("\nManasvi server starting...\n")
 
-whisper = WhisperService()
-gemini = GeminiService()
-preprocessor = TextPreprocessor()
-xtts = XTTSService()
-audio_processor = AudioProcessor()
+# ---------------------------------------------------------------------
+# Lazy-loaded AI services
+# ---------------------------------------------------------------------
+# WhisperService, GeminiService, XTTSService, TextPreprocessor, and
+# AudioProcessor all get created here - lazily, on first use - instead
+# of at import time. Loading Whisper's and XTTS's model weights is
+# what was making the server slow (or, on Railway, making its startup
+# health check time out) before the FastAPI app was even able to start
+# accepting connections. Now the app object itself is ready instantly;
+# only the very first /api/converse request pays the model-loading
+# cost, and every request after that reuses the same already-loaded
+# singletons for the rest of the process's life - identical behavior
+# to eager loading from the second request onward.
+#
+# memory_extractor is included here (not instantiated eagerly like
+# conversation_service/memory_manager/communication_manager below)
+# because it depends on gemini.client and gemini.model - it can only
+# be built once gemini itself has been loaded, so it has to live in
+# this same lazy path, right after gemini is loaded.
+
+whisper = None
+gemini = None
+preprocessor = None
+xtts = None
+audio_processor = None
+memory_extractor = None
+
+
+def get_services():
+    """
+    Lazy-loads all heavy AI services. Each is created only once and
+    then reused for the lifetime of the process.
+    """
+    global whisper, gemini, preprocessor, xtts, audio_processor, memory_extractor
+
+    if whisper is None:
+        print("Loading Whisper...")
+        whisper = WhisperService()
+
+    if gemini is None:
+        print("Loading Gemini...")
+        gemini = GeminiService()
+
+    if preprocessor is None:
+        preprocessor = TextPreprocessor()
+
+    if xtts is None:
+        print("Loading XTTS...")
+        xtts = XTTSService()
+
+    if audio_processor is None:
+        audio_processor = AudioProcessor()
+
+    if memory_extractor is None:
+        # Must come after gemini is loaded above - depends on
+        # gemini.client / gemini.model.
+        memory_extractor = MemoryExtractor(db, gemini.client, gemini.model)
+
+    return whisper, gemini, preprocessor, xtts, audio_processor, memory_extractor
+
 
 # Conversations and messages are persisted in MySQL (see
 # voice_assist_sql.sql for the `conversations` / `messages` tables),
 # so - unlike the old in-memory ConversationManager - history now
 # survives server restarts and works the same across every request,
 # not just within one process's lifetime.
+#
+# These four are lightweight wrappers around the DB connection pool -
+# no model weights, no slow I/O - so they're safe (and useful, since
+# _resolve_conversation below needs conversation_service regardless of
+# whether /api/converse has ever been hit yet) to create eagerly.
 conversation_service = ConversationService(db)
 memory_manager = MemoryManager(db)
-memory_extractor = MemoryExtractor(db, gemini.client, gemini.model)
 communication_manager = CommunicationManager(db)
 prompt_builder = PromptBuilder()
 
@@ -153,6 +211,7 @@ async def converse(
     total_start = time.perf_counter()
 
     try:
+        whisper, gemini, preprocessor, xtts, audio_processor, memory_extractor = get_services()
         # -----------------------------------------------------------
         # Save uploaded audio
         # -----------------------------------------------------------
