@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Manasvi — Getting to know you</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="developer_experience_config.js"></script>
+<style>
+  :root{
+    --bg-deep: #0b0c10;
+    --bg-panel: #14161d;
+    --bg-panel-2: #1b1e28;
+    --border: #23262f;
+    --text-primary: #f2f0ea;
+    --text-muted-solid: #8b909a;
+    --accent-listen: #5eeacf;
+    --accent-speak: #a78bfa;
+    --accent-error: #fb7185;
+    --radius: 22px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body{
+    margin: 0;
+    height: 100%;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  body{
+    background-image:
+      radial-gradient(circle at 20% 15%, rgba(167,139,250,0.12), transparent 45%),
+      radial-gradient(circle at 80% 85%, rgba(94,234,207,0.10), transparent 45%);
+  }
+
+  .gate-overlay{
+    position: fixed;
+    inset: 0;
+    background: var(--bg-deep);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted-solid);
+  }
+
+  .stage{
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+  }
+
+  /* ---------------- Progress dots ---------------- */
+
+  .dots{
+    position: fixed;
+    top: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 7px;
+    z-index: 5;
+  }
+
+  .dot{
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: all 0.35s cubic-bezier(.4,0,.2,1);
+  }
+  .dot.filled{ background: var(--text-muted-solid); }
+  .dot.active{
+    background: var(--accent-speak);
+    width: 18px;
+    border-radius: 3px;
+    box-shadow: 0 0 10px rgba(167,139,250,0.5);
+  }
+
+  /* ---------------- Card content ---------------- */
+
+  .content-wrap{
+    width: 100%;
+    max-width: 480px;
+    text-align: center;
+  }
+
+  .emoji{
+    font-size: 42px;
+    margin-bottom: 22px;
+    display: inline-block;
+  }
+
+  .question{
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 30px;
+    line-height: 1.35;
+    margin: 0 0 10px;
+  }
+
+  .subtitle{
+    color: var(--text-muted-solid);
+    font-size: 14px;
+    margin: 0 0 34px;
+  }
+
+  .answer-area{
+    margin: 0 auto 8px;
+    max-width: 340px;
+  }
+
+  input[type="text"], input[type="date"], textarea{
+    width: 100%;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    font-size: 17px;
+    text-align: center;
+    padding: 14px 16px;
+    border-radius: 14px;
+    transition: border-color 0.25s ease, background 0.25s ease;
+  }
+
+  textarea{
+    resize: none;
+    min-height: 84px;
+    font-size: 15px;
+    text-align: left;
+  }
+
+  input::placeholder, textarea::placeholder{ color: #52565f; }
+  input:focus, textarea:focus{
+    outline: none;
+    border-color: var(--accent-speak);
+    background: rgba(167,139,250,0.05);
+  }
+
+  .choice-row{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .choice-pill{
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    font-size: 14.5px;
+    padding: 12px 20px;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .choice-pill:hover{ border-color: var(--text-muted-solid); }
+  .choice-pill.selected{
+    background: rgba(167,139,250,0.14);
+    border-color: var(--accent-speak);
+    color: var(--accent-speak);
+  }
+
+  /* ---------------- Welcome screen ---------------- */
+
+  .welcome-line{
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 500;
+    margin: 0 0 6px;
+    opacity: 0;
+    animation: line-in 0.6s ease forwards;
+  }
+  .welcome-line.small{
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--text-muted-solid);
+    margin: 0 0 4px;
+  }
+  .welcome-line:nth-child(1){ animation-delay: 0.1s; }
+  .welcome-line:nth-child(2){ animation-delay: 0.35s; }
+  .welcome-line:nth-child(3){ animation-delay: 0.75s; }
+  .welcome-line:nth-child(4){ animation-delay: 0.95s; }
+  .welcome-line:nth-child(5){ animation-delay: 1.15s; }
+
+  @keyframes line-in{
+    from{ opacity: 0; transform: translateY(8px); }
+    to{ opacity: 1; transform: translateY(0); }
+  }
+
+  .btn-primary{
+    background: var(--accent-speak);
+    color: #14161d;
+    font-weight: 600;
+    font-size: 15px;
+    border: none;
+    border-radius: 100px;
+    padding: 14px 30px;
+    cursor: pointer;
+    margin-top: 30px;
+    opacity: 0;
+    animation: line-in 0.6s ease forwards;
+    animation-delay: 1.4s;
+    transition: filter 0.15s ease, transform 0.1s ease;
+  }
+  .btn-primary:hover{ filter: brightness(1.08); }
+  .btn-primary:active{ transform: translateY(1px); }
+
+  /* ---------------- Fixed bottom nav ---------------- */
+
+  .bottom-nav{
+    position: fixed;
+    bottom: 28px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    z-index: 5;
+  }
+
+  .nav-btn{
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    border-radius: 100px;
+    padding: 12px 22px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.03);
+    color: var(--text-muted-solid);
+  }
+  .nav-btn:hover{ color: var(--text-primary); border-color: var(--text-muted-solid); }
+  .nav-btn.hidden{ visibility: hidden; }
+
+  .nav-btn.next{
+    background: var(--accent-speak);
+    border-color: var(--accent-speak);
+    color: #14161d;
+    font-weight: 600;
+    padding: 12px 26px;
+  }
+  .nav-btn.next:hover{ filter: brightness(1.08); }
+  .nav-btn.next:disabled{
+    opacity: 0.4;
+    cursor: default;
+    filter: none;
+  }
+
+  /* ---------------- Question transitions ---------------- */
+
+  .q-enter{
+    animation: q-in 0.42s cubic-bezier(.25,.8,.25,1);
+  }
+  .q-exit{
+    animation: q-out 0.28s cubic-bezier(.4,0,1,1);
+  }
+  @keyframes q-in{
+    from{ opacity: 0; transform: translateX(24px); }
+    to{ opacity: 1; transform: translateX(0); }
+  }
+  @keyframes q-out{
+    from{ opacity: 1; transform: translateX(0); }
+    to{ opacity: 0; transform: translateX(-24px); }
+  }
+
+  /* ---------------- Final screen ---------------- */
+
+  .final-heart{
+    font-size: 30px;
+    opacity: 0;
+    animation: line-in 0.8s ease forwards;
+    animation-delay: 1.1s;
+  }
+
+  @media (max-width: 480px){
+    .question{ font-size: 24px; }
+    .emoji{ font-size: 36px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .welcome-line, .btn-primary, .final-heart{ animation: none; opacity: 1; }
+    .q-enter, .q-exit{ animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="gate-overlay" id="gate-overlay">Checking your session...</div>
+
+<div class="dots" id="dots"></div>
+
+<div class="stage" id="stage"></div>
+
+<script>
+// =================================================================
+// Configuration - the entire question flow lives here. Adding or
+// removing a question means editing this array only; nothing else
+// in the file needs to change.
+// =================================================================
+
+const QUESTIONS = [
+  { id: 'preferred_name',     category: 'identity',     emoji: '✨', question: 'What should I call you?', type: 'text', required: true, placeholder: 'Manav' },
+  { id: 'birthday',           category: 'identity',     emoji: '🎂', question: "When's your birthday?", subtitle: '(optional)', type: 'date' },
+  { id: 'favorite_color',     category: 'personality',  emoji: '🎨', question: 'If your personality had a color...', subtitle: 'what color would it be?', type: 'text', placeholder: 'Deep blue' },
+  { id: 'favorite_flower',    category: 'personality',  emoji: '🌸', question: "What's your favorite flower?", type: 'text' },
+  { id: 'dream_destination',  category: 'aspirations',  emoji: '🌍', question: "A place you've always wanted to visit?", type: 'text' },
+  { id: 'favorite_music',     category: 'personality',  emoji: '🎵', question: 'What kind of music feels like home?', type: 'text' },
+  { id: 'drink_preference',   category: 'lifestyle',    emoji: '☕', question: 'Coffee? Tea? Neither?', type: 'choice', options: ['Coffee', 'Tea', 'Neither'] },
+  { id: 'chronotype',         category: 'lifestyle',    emoji: '🌅', question: 'Are you more...', type: 'choice', options: ['Early Bird', 'Night Owl', 'Somewhere in between'] },
+  { id: 'field_of_study',     category: 'education',    emoji: '💻', question: 'What are you studying these days?', type: 'text' },
+  { id: 'institution',        category: 'education',    emoji: '🏫', question: 'Where are you studying?', type: 'text' },
+  { id: 'career_interest',    category: 'career',       emoji: '🚀', question: 'What kind of work excites you the most?', subtitle: 'AI · Software · Research · Design · Business · Something else', type: 'text' },
+  { id: 'life_goal',          category: 'career',       emoji: '🌟', question: "What's one dream you're quietly working towards?", type: 'textarea' },
+  { id: 'joy_trigger',        category: 'personality',  emoji: '❤️', question: 'One thing that instantly makes your day better?', type: 'text' },
+];
+
+// Screen state machine: 'welcome' -> question index 0..N-1 -> 'final'
+let screen = 'welcome';
+let answers = {};   // key_name -> value already saved/typed
+let sb = null;
+let accessToken = null;
+let currentUserEmail = null;
+let currentUserFirstName = null;
+let currentUserLastName = null;
+let currentUserAuthMetadata = null;
+
+const gateOverlay = document.getElementById('gate-overlay');
+const stageEl = document.getElementById('stage');
+const dotsEl = document.getElementById('dots');
+
+// =================================================================
+// Auth guard + resume
+// =================================================================
+
+async function init(){
+  const cfg = await fetch('/api/public-config').then(r => r.json());
+  sb = supabase.createClient(cfg.supabase_url, cfg.supabase_anon_key);
+
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (!session){
+    window.location.href = 'auth.html';
+    return;
+  }
+
+  accessToken = session.access_token;
+
+  const meRes = await fetch('/api/auth/me', {
+    headers: { Authorization: 'Bearer ' + accessToken },
+  });
+
+  if (!meRes.ok){
+    window.location.href = 'auth.html';
+    return;
+  }
+
+  const { user } = await meRes.json();
+  currentUserEmail = user.email;
+  currentUserFirstName = user.first_name;
+  currentUserLastName = user.last_name;
+  currentUserAuthMetadata = (session.user && session.user.user_metadata) || null;
+
+  if (user.onboarding_completed){
+    window.location.href = 'index.html';
+    return;
+  }
+
+  const memRes = await fetch('/api/onboarding/memory', {
+    headers: { Authorization: 'Bearer ' + accessToken },
+  });
+
+  if (memRes.ok){
+    const { memory } = await memRes.json();
+    memory.forEach(row => { answers[row.key_name] = row.value; });
+  }
+
+  gateOverlay.style.display = 'none';
+
+  // If they already answered something before (came back mid-flow),
+  // skip the welcome replay and jump to the first unanswered question.
+  const firstUnanswered = QUESTIONS.findIndex(q => !(q.id in answers));
+
+  if (Object.keys(answers).length > 0 && firstUnanswered !== -1){
+    screen = firstUnanswered;
+  } else if (Object.keys(answers).length > 0 && firstUnanswered === -1){
+    screen = 'final';
+  }
+
+  render();
+}
+
+// =================================================================
+// Rendering
+// =================================================================
+
+function renderDots(){
+  if (typeof screen !== 'number'){
+    dotsEl.innerHTML = '';
+    return;
+  }
+
+  dotsEl.innerHTML = '';
+
+  QUESTIONS.forEach((q, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'dot';
+    if (i === screen) dot.classList.add('active');
+    else if (i < screen) dot.classList.add('filled');
+    dotsEl.appendChild(dot);
+  });
+}
+
+function render(transitionIn){
+  renderDots();
+
+  stageEl.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'content-wrap' + (transitionIn ? ' q-enter' : '');
+
+  if (screen === 'welcome'){
+    wrap.innerHTML = `
+      <div class="welcome-line" style="font-size:38px;">Hi 👋</div>
+      <div class="welcome-line">I'm Manasvi.</div>
+      <div class="welcome-line small">Before we begin...</div>
+      <div class="welcome-line small">I'd love to know you a little better.</div>
+      <div class="welcome-line small">No pressure. No right answers. Just you.</div>
+    `;
+    const btn = document.createElement('button');
+    btn.className = 'btn-primary';
+    btn.textContent = "Let's Begin";
+    btn.addEventListener('click', () => goTo(0));
+    wrap.appendChild(btn);
+    stageEl.appendChild(wrap);
+    return;
+  }
+
+  if (screen === 'final'){
+    wrap.innerHTML = `
+      <div class="welcome-line" style="font-size:26px;">That's enough for today.</div>
+      <div class="welcome-line small">The rest...</div>
+      <div class="welcome-line small">I'll learn naturally as we keep talking.</div>
+      <div class="final-heart">❤️</div>
+    `;
+    stageEl.appendChild(wrap);
+    finishOnboarding();
+    return;
+  }
+
+  // ---- a normal question screen ----
+  const q = QUESTIONS[screen];
+
+  const emoji = document.createElement('div');
+  emoji.className = 'emoji';
+  emoji.textContent = q.emoji;
+  wrap.appendChild(emoji);
+
+  const questionEl = document.createElement('div');
+  questionEl.className = 'question';
+  questionEl.textContent = q.question;
+  wrap.appendChild(questionEl);
+
+  if (q.subtitle){
+    const sub = document.createElement('div');
+    sub.className = 'subtitle';
+    sub.textContent = q.subtitle;
+    wrap.appendChild(sub);
+  } else {
+    const sub = document.createElement('div');
+    sub.className = 'subtitle';
+    sub.style.visibility = 'hidden';
+    sub.textContent = '.';
+    wrap.appendChild(sub);
+  }
+
+  const answerArea = document.createElement('div');
+  answerArea.className = 'answer-area';
+
+  if (q.type === 'choice'){
+    const row = document.createElement('div');
+    row.className = 'choice-row';
+
+    q.options.forEach(opt => {
+      const pill = document.createElement('button');
+      pill.type = 'button';
+      pill.className = 'choice-pill';
+      if (answers[q.id] === opt) pill.classList.add('selected');
+      pill.textContent = opt;
+      pill.addEventListener('click', () => {
+        answers[q.id] = opt;
+        row.querySelectorAll('.choice-pill').forEach(p => p.classList.remove('selected'));
+        pill.classList.add('selected');
+        updateNextEnabled();
+        // brief pause so the selection is visible before advancing
+        setTimeout(() => goNext(), 320);
+      });
+      row.appendChild(pill);
+    });
+
+    answerArea.appendChild(row);
+
+  } else {
+    const input = document.createElement(q.type === 'textarea' ? 'textarea' : 'input');
+    if (q.type !== 'textarea') input.type = q.type;
+    if (q.placeholder) input.placeholder = q.placeholder;
+    input.id = 'answer-input';
+    input.value = answers[q.id] || '';
+    input.addEventListener('input', updateNextEnabled);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && q.type !== 'textarea'){
+        e.preventDefault();
+        goNext();
+      }
+    });
+    answerArea.appendChild(input);
+  }
+
+  wrap.appendChild(answerArea);
+  stageEl.appendChild(wrap);
+
+  if (q.type !== 'choice'){
+    const input = document.getElementById('answer-input');
+    if (input) setTimeout(() => input.focus(), 50);
+  }
+
+  renderNav(q);
+}
+
+function renderNav(q){
+  const nav = document.createElement('div');
+  nav.className = 'bottom-nav';
+
+  const backBtn = document.createElement('button');
+  backBtn.className = 'nav-btn' + (screen === 0 ? '' : '');
+  backBtn.textContent = '← Back';
+  backBtn.addEventListener('click', goBack);
+  nav.appendChild(backBtn);
+
+  if (q.type !== 'choice'){
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'nav-btn next';
+    nextBtn.id = 'next-btn';
+    nextBtn.textContent = 'Next →';
+    nextBtn.disabled = q.required && !(answers[q.id] && answers[q.id].trim());
+    nextBtn.addEventListener('click', goNext);
+    nav.appendChild(nextBtn);
+  }
+
+  stageEl.appendChild(nav);
+}
+
+function updateNextEnabled(){
+  const q = QUESTIONS[screen];
+  const nextBtn = document.getElementById('next-btn');
+  if (!nextBtn) return;
+
+  const input = document.getElementById('answer-input');
+  const value = input ? input.value.trim() : (answers[q.id] || '');
+
+  nextBtn.disabled = q.required && !value;
+}
+
+// =================================================================
+// Navigation + saving
+// =================================================================
+
+async function saveCurrentAnswer(){
+  if (typeof screen !== 'number') return;
+
+  const q = QUESTIONS[screen];
+  let value;
+
+  if (q.type === 'choice'){
+    value = answers[q.id];
+  } else {
+    const input = document.getElementById('answer-input');
+    value = input ? input.value.trim() : '';
+    if (value) answers[q.id] = value;
+  }
+
+  if (!value) return; // optional + left blank, nothing to save
+
+  try {
+    await fetch('/api/onboarding/save', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        entries: [{ category: q.category, key_name: q.id, value }],
+      }),
+    });
+  } catch (e) {
+    // Non-fatal for the flow - Manasvi will just have one gap in
+    // memory. We don't block the conversation over a network blip.
+    console.warn('Could not autosave answer for', q.id, e);
+  }
+}
+
+function goTo(index){
+  screen = index;
+  render(true);
+}
+
+async function goNext(){
+  const nextBtn = document.getElementById('next-btn');
+  if (nextBtn && nextBtn.disabled) return;
+
+  await saveCurrentAnswer();
+
+  if (screen < QUESTIONS.length - 1){
+    screen += 1;
+  } else {
+    screen = 'final';
+  }
+
+  render(true);
+}
+
+function goBack(){
+  if (screen === 0){
+    screen = 'welcome';
+  } else if (typeof screen === 'number'){
+    screen -= 1;
+  } else if (screen === 'final'){
+    screen = QUESTIONS.length - 1;
+  }
+
+  render(true);
+}
+
+async function finishOnboarding(){
+  try {
+    await fetch('/api/onboarding/complete', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + accessToken },
+    });
+  } catch (e) {
+    console.warn('Could not mark onboarding complete, will retry on next load.', e);
+  }
+
+  const isEligibleForDevExperience = checkDevExperienceEligibility({
+    email: currentUserEmail,
+    preferred_name: answers['preferred_name'],
+    first_name: currentUserFirstName,
+    last_name: currentUserLastName,
+  }, currentUserAuthMetadata);
+
+  if (isEligibleForDevExperience){
+    sessionStorage.setItem('manasvi_show_dev_experience', 'true');
+  }
+
+  setTimeout(() => {
+    window.location.href = isEligibleForDevExperience
+      ? 'developer-experience.html'
+      : 'index.html';
+  }, 2200);
+}
+
+// Matches on exact email first, falling back to name-based matching
+// for cases where the email isn't known yet. Name candidates come
+// from three places: preferred_name (chosen during this onboarding
+// flow), first_name/last_name (backend profile), and the Supabase
+// auth session's own OAuth identity metadata - Google sign-in
+// exposes the account's given/full name there even before any of it
+// has been saved to the backend profile. Kept in sync with the same
+// check in developer-experience.html.
+function checkDevExperienceEligibility(user, authMetadata){
+  const config = window.DEV_EXPERIENCE_CONFIG;
+  if (!config) return false;
+
+  const email = (user.email || '').trim().toLowerCase();
+  const eligibleEmails = (config.eligibleEmails || []).map(e => e.trim().toLowerCase());
+  if (eligibleEmails.includes(email)) return true;
+
+  const preferredName = (user.preferred_name || '').trim().toLowerCase();
+  const firstName = (user.first_name || '').trim().toLowerCase();
+  const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim().toLowerCase();
+
+  const metadata = authMetadata || {};
+  const oauthFullName = (metadata.full_name || metadata.name || '').trim().toLowerCase();
+  const oauthGivenName = (metadata.given_name || '').trim().toLowerCase();
+
+  const eligibleNames = (config.eligibleNames || []).map(n => n.trim().toLowerCase());
+
+  return (
+    eligibleNames.includes(preferredName) ||
+    eligibleNames.includes(firstName) ||
+    eligibleNames.includes(fullName) ||
+    eligibleNames.includes(oauthFullName) ||
+    eligibleNames.includes(oauthGivenName)
+  );
+}
+
+init();
+</script>
+
+</body>
+</html>

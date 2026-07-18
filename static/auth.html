@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Manasvi — Sign in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root{
+    --bg-deep: #0b0c10;
+    --bg-panel: #14161d;
+    --bg-panel-2: #191c25;
+    --border: #23262f;
+    --text-primary: #f2f0ea;
+    --text-muted-solid: #838993;
+    --accent-listen: #5eeacf;
+    --accent-think: #f4bf4f;
+    --accent-speak: #a78bfa;
+    --accent-error: #fb7185;
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body{
+    margin: 0;
+    min-height: 100%;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body{
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(167,139,250,0.10), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(94,234,207,0.08), transparent 40%);
+  }
+
+  .wordmark{
+    position: fixed;
+    top: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    letter-spacing: 0.02em;
+    color: var(--text-primary);
+    opacity: 0.9;
+  }
+
+  .card-stack{
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+  }
+
+  .card{
+    background: rgba(20, 22, 29, 0.7);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 32px 28px 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    animation: card-in 0.35s ease;
+  }
+
+  @keyframes card-in{
+    from{ opacity: 0; transform: translateY(8px) scale(0.99); }
+    to{ opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  h1{
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 24px;
+    margin: 0 0 4px;
+  }
+
+  .subtitle{
+    color: var(--text-muted-solid);
+    font-size: 13.5px;
+    margin: 0 0 24px;
+  }
+
+  .field{
+    margin-bottom: 14px;
+  }
+
+  .field-row{
+    display: flex;
+    gap: 10px;
+  }
+  .field-row .field{ flex: 1; }
+
+  label{
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted-solid);
+    margin-bottom: 6px;
+    letter-spacing: 0.02em;
+  }
+
+  input{
+    width: 100%;
+    background: var(--bg-panel-2);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    padding: 11px 12px;
+    border-radius: 10px;
+    transition: border-color 0.2s ease;
+  }
+  input::placeholder{ color: #4b5058; }
+  input:focus{
+    outline: none;
+    border-color: var(--accent-speak);
+  }
+  input.invalid{ border-color: var(--accent-error); }
+
+  .error-text{
+    color: var(--accent-error);
+    font-size: 12px;
+    margin-top: 6px;
+    min-height: 14px;
+  }
+
+  .banner{
+    font-size: 13px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .banner.show{ display: block; }
+  .banner.error{
+    background: rgba(251,113,133,0.08);
+    border: 1px solid rgba(251,113,133,0.3);
+    color: var(--accent-error);
+  }
+  .banner.success{
+    background: rgba(94,234,207,0.08);
+    border: 1px solid rgba(94,234,207,0.3);
+    color: var(--accent-listen);
+  }
+
+  button{
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+  }
+
+  .btn-primary{
+    width: 100%;
+    background: var(--accent-speak);
+    color: #14161d;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    border-radius: 10px;
+    padding: 12px;
+    margin-top: 6px;
+    transition: filter 0.15s ease, transform 0.1s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-primary:hover{ filter: brightness(1.08); }
+  .btn-primary:active{ transform: translateY(1px); }
+  .btn-primary:disabled{ opacity: 0.6; cursor: default; }
+
+  .btn-google{
+    width: 100%;
+    background: var(--bg-panel-2);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 10px;
+    padding: 11px;
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: border-color 0.2s ease;
+  }
+  .btn-google:hover{ border-color: var(--text-muted-solid); }
+
+  .divider{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 18px 0 4px;
+    color: var(--text-muted-solid);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .divider::before, .divider::after{
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .switcher{
+    text-align: center;
+    margin-top: 20px;
+    font-size: 13px;
+    color: var(--text-muted-solid);
+  }
+  .switcher button{
+    background: none;
+    border: none;
+    color: var(--accent-speak);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 0;
+  }
+
+  .forgot-link{
+    display: block;
+    text-align: right;
+    font-size: 12px;
+    color: var(--text-muted-solid);
+    background: none;
+    border: none;
+    margin-top: -6px;
+    margin-bottom: 14px;
+    padding: 0;
+  }
+  .forgot-link:hover{ color: var(--text-primary); }
+
+  .spinner{
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid rgba(20,22,29,0.3);
+    border-top-color: #14161d;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  .checkmark{
+    width: 22px;
+    height: 22px;
+  }
+
+  .hidden{ display: none !important; }
+
+  @media (prefers-reduced-motion: reduce){
+    .card{ animation: none; }
+    .spinner{ animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wordmark">MANASVI</div>
+
+<div class="card-stack">
+
+  <!-- ===================== LOGIN CARD ===================== -->
+  <div class="card" id="login-card">
+    <h1>Welcome back</h1>
+    <p class="subtitle">Log in to keep talking with Manasvi.</p>
+
+    <div class="banner" id="login-banner"></div>
+
+    <form id="login-form" novalidate>
+      <div class="field">
+        <label for="login-email">Email</label>
+        <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" required />
+      </div>
+      <div class="field">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" required />
+      </div>
+
+      <button type="button" class="forgot-link" id="forgot-link">Forgot password?</button>
+
+      <button type="submit" class="btn-primary" id="login-submit">
+        <span class="btn-label">Log in</span>
+      </button>
+    </form>
+
+    <div class="divider">or</div>
+
+    <button type="button" class="btn-google" id="login-google">
+      <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.25 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.85A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.09A6.6 6.6 0 0 1 5.5 12c0-.73.12-1.43.34-2.09V7.06H2.18A11 11 0 0 0 1 12c0 1.77.42 3.45 1.18 4.94l3.66-2.85z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1a11 11 0 0 0-9.82 6.06l3.66 2.85C6.71 7.31 9.14 5.38 12 5.38z"/></svg>
+      Continue with Google
+    </button>
+
+    <div class="switcher">
+      Don't have an account? <button type="button" id="show-signup">Sign up</button>
+    </div>
+  </div>
+
+  <!-- ===================== SIGNUP CARD ===================== -->
+  <div class="card hidden" id="signup-card">
+    <h1>Create your account</h1>
+    <p class="subtitle">Manasvi will remember you next time.</p>
+
+    <div class="banner" id="signup-banner"></div>
+
+    <form id="signup-form" novalidate>
+      <div class="field-row">
+        <div class="field">
+          <label for="signup-first-name">First name</label>
+          <input type="text" id="signup-first-name" placeholder="Manav" autocomplete="given-name" required />
+        </div>
+        <div class="field">
+          <label for="signup-last-name">Last name</label>
+          <input type="text" id="signup-last-name" placeholder="Sharma" autocomplete="family-name" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="signup-email">Email</label>
+        <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email" required />
+      </div>
+
+      <div class="field">
+        <label for="signup-phone">Phone number</label>
+        <input type="tel" id="signup-phone" placeholder="+91 98765 43210" autocomplete="tel" />
+      </div>
+
+      <div class="field">
+        <label for="signup-password">Password</label>
+        <input type="password" id="signup-password" placeholder="At least 8 characters" autocomplete="new-password" required />
+      </div>
+
+      <div class="field">
+        <label for="signup-confirm-password">Confirm password</label>
+        <input type="password" id="signup-confirm-password" placeholder="••••••••" autocomplete="new-password" required />
+        <div class="error-text" id="signup-password-error"></div>
+      </div>
+
+      <button type="submit" class="btn-primary" id="signup-submit">
+        <span class="btn-label">Create account</span>
+      </button>
+    </form>
+
+    <div class="divider">or</div>
+
+    <button type="button" class="btn-google" id="signup-google">
+      <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.25 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.85A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.09A6.6 6.6 0 0 1 5.5 12c0-.73.12-1.43.34-2.09V7.06H2.18A11 11 0 0 0 1 12c0 1.77.42 3.45 1.18 4.94l3.66-2.85z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1a11 11 0 0 0-9.82 6.06l3.66 2.85C6.71 7.31 9.14 5.38 12 5.38z"/></svg>
+      Continue with Google
+    </button>
+
+    <div class="switcher">
+      Already have an account? <button type="button" id="show-login">Log in</button>
+    </div>
+  </div>
+
+  <!-- ===================== FORGOT PASSWORD CARD ===================== -->
+  <div class="card hidden" id="forgot-card">
+    <h1>Reset your password</h1>
+    <p class="subtitle">We'll email you a link to get back in.</p>
+
+    <div class="banner" id="forgot-banner"></div>
+
+    <form id="forgot-form" novalidate>
+      <div class="field">
+        <label for="forgot-email">Email</label>
+        <input type="email" id="forgot-email" placeholder="you@example.com" required />
+      </div>
+
+      <button type="submit" class="btn-primary" id="forgot-submit">
+        <span class="btn-label">Send reset link</span>
+      </button>
+    </form>
+
+    <div class="switcher">
+      <button type="button" id="back-to-login">Back to login</button>
+    </div>
+  </div>
+
+  <!-- ===================== NEW PASSWORD (recovery landing) ===================== -->
+  <div class="card hidden" id="recovery-card">
+    <h1>Choose a new password</h1>
+    <p class="subtitle">You followed a password reset link.</p>
+
+    <div class="banner" id="recovery-banner"></div>
+
+    <form id="recovery-form" novalidate>
+      <div class="field">
+        <label for="recovery-password">New password</label>
+        <input type="password" id="recovery-password" placeholder="At least 8 characters" required />
+      </div>
+
+      <button type="submit" class="btn-primary" id="recovery-submit">
+        <span class="btn-label">Update password</span>
+      </button>
+    </form>
+  </div>
+
+</div>
+
+<script>
+const els = {
+  login: document.getElementById('login-card'),
+  signup: document.getElementById('signup-card'),
+  forgot: document.getElementById('forgot-card'),
+  recovery: document.getElementById('recovery-card'),
+};
+
+function showCard(name){
+  Object.values(els).forEach(el => el.classList.add('hidden'));
+  els[name].classList.remove('hidden');
+}
+
+function setBanner(id, message, type){
+  const el = document.getElementById(id);
+  el.textContent = message;
+  el.className = 'banner show ' + type;
+}
+
+function clearBanner(id){
+  const el = document.getElementById(id);
+  el.className = 'banner';
+}
+
+function setLoading(buttonId, loading, labelWhileLoading){
+  const btn = document.getElementById(buttonId);
+  const label = btn.querySelector('.btn-label');
+  btn.disabled = loading;
+
+  if (loading){
+    label.dataset.original = label.textContent;
+    label.innerHTML = '<span class="spinner"></span>';
+  } else {
+    label.textContent = label.dataset.original || label.textContent;
+  }
+}
+
+document.getElementById('show-signup').addEventListener('click', () => showCard('signup'));
+document.getElementById('show-login').addEventListener('click', () => showCard('login'));
+document.getElementById('forgot-link').addEventListener('click', () => showCard('forgot'));
+document.getElementById('back-to-login').addEventListener('click', () => showCard('login'));
+
+let sb = null;
+let isSyncing = false;
+async function init(){
+  const cfg = await fetch('/api/public-config').then(r => r.json());
+  sb = supabase.createClient(cfg.supabase_url, cfg.supabase_anon_key);
+
+  // Password recovery links land here with a #access_token=...&type=recovery
+  // fragment. supabase-js parses that automatically and fires this event.
+ sb.auth.onAuthStateChange(async (event, session) => {
+
+    console.log("AUTH EVENT:", event);
+
+    if (session) {
+        console.log("SESSION EXISTS");
+    } else {
+        console.log("NO SESSION");
+    }
+
+    if (event === "SIGNED_IN" && session) {
+
+        await syncAndRedirect(session.access_token);
+
+    }
+
+    if (event === "PASSWORD_RECOVERY") {
+
+        showCard("recovery");
+
+    }
+
+});
+
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (session && !window.location.hash.includes('type=recovery')){
+    await syncAndRedirect(session.access_token);
+  }
+}
+
+async function syncAndRedirect(accessToken, extra = {}) {
+
+    if (isSyncing) return;
+
+    isSyncing = true;
+
+    try {
+
+        const res = await fetch('/api/auth/sync', {
+
+            method: 'POST',
+
+            headers: {
+
+                Authorization: 'Bearer ' + accessToken,
+
+                'Content-Type': 'application/json'
+
+            },
+
+            body: JSON.stringify(extra)
+
+        });
+
+        if (!res.ok) {
+
+            throw new Error("Could not finish signing you in.");
+
+        }
+
+        const { user } = await res.json();
+
+        window.location.replace(user.onboarding_completed ? "index.html" : "onboarding.html");
+
+    }
+
+    catch(err){
+
+        isSyncing = false;
+
+        console.error(err);
+
+        setBanner("login-banner", err.message, "error");
+
+    }
+
+}
+
+// ---------------- Login ----------------
+
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+
+  e.preventDefault();
+
+  clearBanner('login-banner');
+
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+
+  if (!email || !password){
+
+    setBanner('login-banner', 'Please fill in both fields.', 'error');
+
+    return;
+
+  }
+
+  setLoading('login-submit', true);
+
+  const { error } = await sb.auth.signInWithPassword({
+
+    email,
+    password,
+
+  });
+
+  setLoading('login-submit', false);
+
+  if (error){
+
+    setBanner('login-banner', error.message, 'error');
+
+    return;
+
+  }
+
+  // Nothing else here.
+  // onAuthStateChange() will handle the redirect automatically.
+
+});
+
+document.getElementById('login-google').addEventListener('click', async () => {
+  await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + window.location.pathname },
+  });
+});
+
+// ---------------- Signup ----------------
+
+document.getElementById('signup-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  clearBanner('signup-banner');
+  document.getElementById('signup-password-error').textContent = '';
+
+  const firstName = document.getElementById('signup-first-name').value.trim();
+  const lastName = document.getElementById('signup-last-name').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const phone = document.getElementById('signup-phone').value.trim();
+  const password = document.getElementById('signup-password').value;
+  const confirmPassword = document.getElementById('signup-confirm-password').value;
+
+  if (!firstName || !email || !password){
+    setBanner('signup-banner', 'Please fill in all required fields.', 'error');
+    return;
+  }
+
+  if (password !== confirmPassword){
+    document.getElementById('signup-password-error').textContent = 'Passwords do not match.';
+    return;
+  }
+
+  if (password.length < 8){
+    document.getElementById('signup-password-error').textContent = 'Password must be at least 8 characters.';
+    return;
+  }
+
+  setLoading('signup-submit', true);
+
+  const { data, error } = await sb.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        first_name: firstName,
+        last_name: lastName,
+        phone_number: phone,
+      },
+      emailRedirectTo: window.location.origin + window.location.pathname,
+    },
+  });
+
+  setLoading('signup-submit', false);
+
+  if (error){
+    setBanner('signup-banner', error.message, 'error');
+    return;
+  }
+
+  // If email confirmations are OFF in your Supabase project, signUp
+  // returns an active session immediately - sync and go straight in.
+  if (data.session){
+    await syncAndRedirect(data.session.access_token, {
+      first_name: firstName,
+      last_name: lastName,
+      phone_number: phone,
+    });
+    return;
+  }
+
+  setBanner(
+    'signup-banner',
+    'Account created — check ' + email + ' for a verification link before logging in.',
+    'success'
+  );
+});
+
+document.getElementById('signup-google').addEventListener('click', async () => {
+  await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + window.location.pathname },
+  });
+});
+
+// ---------------- Forgot password ----------------
+
+document.getElementById('forgot-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  clearBanner('forgot-banner');
+
+  const email = document.getElementById('forgot-email').value.trim();
+
+  if (!email){
+    setBanner('forgot-banner', 'Please enter your email.', 'error');
+    return;
+  }
+
+  setLoading('forgot-submit', true);
+
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname + '?type=recovery',
+  });
+
+  setLoading('forgot-submit', false);
+
+  if (error){
+    setBanner('forgot-banner', error.message, 'error');
+    return;
+  }
+
+  setBanner('forgot-banner', 'Check ' + email + ' for a reset link.', 'success');
+});
+
+// ---------------- Recovery (set new password) ----------------
+
+document.getElementById('recovery-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  clearBanner('recovery-banner');
+
+  const password = document.getElementById('recovery-password').value;
+
+  if (password.length < 8){
+    setBanner('recovery-banner', 'Password must be at least 8 characters.', 'error');
+    return;
+  }
+
+  setLoading('recovery-submit', true);
+
+  const { error } = await sb.auth.updateUser({ password });
+
+  setLoading('recovery-submit', false);
+
+  if (error){
+    setBanner('recovery-banner', error.message, 'error');
+    return;
+  }
+
+  setBanner('recovery-banner', 'Password updated — taking you in...', 'success');
+
+  const { data: { session } } = await sb.auth.getSession();
+  if (session){
+    setTimeout(() => syncAndRedirect(session.access_token), 900);
+  }
+});
+
+init();
+</script>
+
+</body>
+</html>

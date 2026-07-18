@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Manasvi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root{
+    --bg-deep: #0b0c10;
+    --bg-panel: #14161d;
+    --bg-panel-2: #191c25;
+    --border: #23262f;
+    --text-primary: #f2f0ea;
+    --text-muted: #83899370;
+    --text-muted-solid: #838993;
+    --accent-listen: #5eeacf;
+    --accent-think: #f4bf4f;
+    --accent-speak: #a78bfa;
+    --accent-error: #fb7185;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body{
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(167,139,250,0.06), transparent 45%),
+      radial-gradient(circle at 80% 100%, rgba(94,234,207,0.05), transparent 45%);
+  }
+
+  .app-layout{
+    display: flex;
+    min-height: 100%;
+  }
+
+  /* ---------- Sidebar ---------- */
+
+  .sidebar{
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+  }
+
+  .sidebar-head{
+    padding: 18px 14px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  #new-convo-btn{
+    width: 100%;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  #new-convo-btn:hover{ border-color: var(--accent-listen); background: rgba(94,234,207,0.06); }
+  #new-convo-btn svg{ width: 15px; height: 15px; flex-shrink: 0; }
+
+  .convo-list{
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 8px 14px;
+  }
+
+  .convo-group-label{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted-solid);
+    padding: 12px 8px 6px;
+  }
+
+  .convo-item{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 8px;
+    border-radius: 10px;
+    cursor: pointer;
+    color: var(--text-muted-solid);
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .convo-item:hover{ background: var(--bg-panel-2); color: var(--text-primary); }
+  .convo-item.active{ background: rgba(167,139,250,0.1); color: var(--text-primary); }
+
+  .convo-title{
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .convo-actions{
+    display: none;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .convo-item:hover .convo-actions{ display: flex; }
+
+  .convo-action-btn{
+    background: none;
+    border: none;
+    color: var(--text-muted-solid);
+    cursor: pointer;
+    padding: 3px;
+    border-radius: 6px;
+    display: flex;
+  }
+  .convo-action-btn:hover{ color: var(--text-primary); background: var(--border); }
+  .convo-action-btn svg{ width: 13px; height: 13px; }
+
+  .convo-empty{
+    color: var(--text-muted-solid);
+    font-size: 12.5px;
+    padding: 10px 8px;
+  }
+
+  #sidebar-toggle{
+    display: none;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted-solid);
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  #sidebar-toggle svg{ width: 16px; height: 16px; }
+
+  @media (max-width: 860px){
+    .sidebar{
+      position: fixed;
+      inset: 0 auto 0 0;
+      z-index: 40;
+      transform: translateX(-100%);
+      transition: transform 0.2s ease;
+      box-shadow: 0 0 40px rgba(0,0,0,0.5);
+    }
+    .sidebar.open{ transform: translateX(0); }
+    #sidebar-toggle{ display: flex; }
+    .sidebar-backdrop{
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 30;
+    }
+    .sidebar-backdrop.open{ display: block; }
+  }
+
+  .shell{
+    max-width: 720px;
+    margin: 0 auto;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 28px 20px 40px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* ---------- Header ---------- */
+
+  header{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .wordmark{
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .status-dot{
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted-solid);
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .status-dot.listen{ background: var(--accent-listen); box-shadow: 0 0 10px var(--accent-listen); }
+  .status-dot.think{ background: var(--accent-think); box-shadow: 0 0 10px var(--accent-think); }
+  .status-dot.speak{ background: var(--accent-speak); box-shadow: 0 0 10px var(--accent-speak); }
+  .status-dot.error{ background: var(--accent-error); box-shadow: 0 0 10px var(--accent-error); }
+
+  #reset-btn{
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted-solid);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    padding: 7px 12px;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+  #reset-btn:hover{ border-color: var(--text-muted-solid); color: var(--text-primary); }
+  #reset-btn:focus-visible{ outline: 2px solid var(--accent-speak); outline-offset: 2px; }
+
+  .header-actions{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .account-chip{
+    font-size: 12.5px;
+    color: var(--text-muted-solid);
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #logout-btn{
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted-solid);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    padding: 7px 12px;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+  #logout-btn:hover{ border-color: var(--accent-error); color: var(--accent-error); }
+  #logout-btn:focus-visible{ outline: 2px solid var(--accent-speak); outline-offset: 2px; }
+
+  .gate-overlay{
+    position: fixed;
+    inset: 0;
+    background: var(--bg-deep);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted-solid);
+  }
+
+  /* ---------- Mic Orb ---------- */
+
+  .orb-zone{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 44px 0 30px;
+    gap: 18px;
+  }
+
+  .orb-wrap{
+    position: relative;
+    width: 148px;
+    height: 148px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .orb-ring{
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  .orb-ring.active{
+    animation: pulse-ring 1.6s ease-out infinite;
+    border-color: var(--accent-listen);
+  }
+
+  .orb-ring.active.speak{ border-color: var(--accent-speak); }
+  .orb-ring.active.think{ border-color: var(--accent-think); animation-duration: 1.1s; }
+
+  @keyframes pulse-ring{
+    0%   { opacity: 0.5; transform: scale(0.85); }
+    100% { opacity: 0;   transform: scale(1.35); }
+  }
+
+  #mic-btn{
+    position: relative;
+    width: 104px;
+    height: 104px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease, border-color 0.25s ease, background 0.25s ease;
+  }
+
+  #mic-btn:hover{ transform: translateY(-1px); }
+  #mic-btn:active{ transform: translateY(0); }
+  #mic-btn:focus-visible{ outline: 2px solid var(--accent-speak); outline-offset: 4px; }
+
+  #mic-btn.recording{
+    background: radial-gradient(circle, rgba(94,234,207,0.16), var(--bg-panel) 70%);
+    border-color: var(--accent-listen);
+  }
+  #mic-btn.thinking{
+    background: radial-gradient(circle, rgba(244,191,79,0.14), var(--bg-panel) 70%);
+    border-color: var(--accent-think);
+    cursor: default;
+  }
+  #mic-btn.speaking{
+    background: radial-gradient(circle, rgba(167,139,250,0.16), var(--bg-panel) 70%);
+    border-color: var(--accent-speak);
+    cursor: default;
+  }
+  #mic-btn:disabled{ cursor: default; }
+
+  #mic-btn svg{ width: 34px; height: 34px; }
+
+  .state-label{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted-solid);
+    min-height: 16px;
+  }
+
+  /* ---------- Pipeline stepper ---------- */
+
+  .pipeline{
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 14px 16px;
+    margin-bottom: 22px;
+  }
+
+  .stage{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+  }
+
+  .stage:not(:last-child)::after{
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 56%;
+    width: 88%;
+    height: 1px;
+    background: var(--border);
+    z-index: 0;
+  }
+
+  .stage.done:not(:last-child)::after{ background: var(--accent-speak); }
+
+  .stage-dot{
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+    z-index: 1;
+    transition: all 0.25s ease;
+  }
+
+  .stage.active .stage-dot{
+    background: var(--accent-think);
+    border-color: var(--accent-think);
+    box-shadow: 0 0 8px var(--accent-think);
+  }
+  .stage.done .stage-dot{
+    background: var(--accent-speak);
+    border-color: var(--accent-speak);
+  }
+
+  .stage-label{
+    font-size: 11px;
+    color: var(--text-muted-solid);
+    letter-spacing: 0.02em;
+  }
+
+  .stage-time{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted-solid);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .stage.done .stage-time{ opacity: 1; }
+
+  /* ---------- Transcript ---------- */
+
+  .transcript-head{
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .transcript-head span{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted-solid);
+  }
+
+  #transcript{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+  }
+
+  .empty-state{
+    color: var(--text-muted-solid);
+    font-size: 14px;
+    padding: 30px 4px;
+    text-align: center;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+  }
+
+  .bubble{
+    max-width: 82%;
+    padding: 12px 14px;
+    border-radius: var(--radius);
+    font-size: 14.5px;
+    line-height: 1.5;
+    border: 1px solid var(--border);
+  }
+
+  .bubble .role{
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+
+  .bubble.user{
+    align-self: flex-end;
+    background: rgba(94,234,207,0.06);
+    border-color: rgba(94,234,207,0.25);
+  }
+  .bubble.user .role{ color: var(--accent-listen); }
+
+  .bubble.assistant{
+    align-self: flex-start;
+    background: rgba(167,139,250,0.06);
+    border-color: rgba(167,139,250,0.25);
+    font-family: 'Fraunces', serif;
+  }
+  .bubble.assistant .role{ color: var(--accent-speak); font-family: 'JetBrains Mono', monospace; }
+
+  .bubble.error{
+    align-self: center;
+    background: rgba(251,113,133,0.08);
+    border-color: rgba(251,113,133,0.3);
+    color: var(--accent-error);
+    font-size: 13px;
+  }
+
+  .play-row{
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  audio{
+    height: 32px;
+    width: 100%;
+    filter: invert(1) grayscale(1) contrast(0.85);
+    border-radius: 20px;
+  }
+
+  footer{
+    padding-top: 18px;
+    text-align: center;
+  }
+  footer p{
+    font-size: 11.5px;
+    color: var(--text-muted-solid);
+    margin: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .orb-ring.active{ animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="gate-overlay" id="gate-overlay">Checking your session...</div>
+
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+<div class="app-layout">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <button id="new-convo-btn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        New conversation
+      </button>
+    </div>
+    <div class="convo-list" id="convo-list">
+      <div class="convo-empty">No conversations yet.</div>
+    </div>
+  </aside>
+
+  <div class="shell">
+
+  <header>
+    <button id="sidebar-toggle" type="button" aria-label="Toggle conversation list">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+    <div class="wordmark">
+      MANASVI
+      <span id="status-dot" class="status-dot"></span>
+    </div>
+    <div class="header-actions">
+      <span class="account-chip" id="account-chip"></span>
+      <button id="logout-btn" type="button">Log out</button>
+    </div>
+  </header>
+
+  <div class="orb-zone">
+    <div class="orb-wrap">
+      <div id="ring-1" class="orb-ring"></div>
+      <div id="ring-2" class="orb-ring"></div>
+      <button id="mic-btn" type="button" aria-label="Start talking">
+        <svg id="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+          <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
+          <line x1="12" y1="18" x2="12" y2="22"/>
+          <line x1="8" y1="22" x2="16" y2="22"/>
+        </svg>
+      </button>
+    </div>
+    <div id="state-label" class="state-label">Tap to talk</div>
+  </div>
+
+  <div class="pipeline" id="pipeline">
+    <div class="stage" data-stage="whisper">
+      <div class="stage-dot"></div>
+      <div class="stage-label">Whisper</div>
+      <div class="stage-time">&nbsp;</div>
+    </div>
+    <div class="stage" data-stage="gemini">
+      <div class="stage-dot"></div>
+      <div class="stage-label">Gemini</div>
+      <div class="stage-time">&nbsp;</div>
+    </div>
+    <div class="stage" data-stage="preprocess">
+      <div class="stage-dot"></div>
+      <div class="stage-label">Preprocess</div>
+      <div class="stage-time">&nbsp;</div>
+    </div>
+    <div class="stage" data-stage="xtts">
+      <div class="stage-dot"></div>
+      <div class="stage-label">XTTS</div>
+      <div class="stage-time">&nbsp;</div>
+    </div>
+  </div>
+
+  <div class="transcript-head">
+    <span>Conversation</span>
+    <span id="total-time"></span>
+  </div>
+
+  <div id="transcript">
+    <div class="empty-state" id="empty-state">Tap the mic and say something to Manasvi.</div>
+  </div>
+
+  <footer>
+    <p>Audio is recorded in your browser and processed by your local Manasvi backend.</p>
+  </footer>
+
+  </div>
+
+</div>
+
+<script>
+const micBtn = document.getElementById('mic-btn');
+const statusDot = document.getElementById('status-dot');
+const stateLabel = document.getElementById('state-label');
+const ring1 = document.getElementById('ring-1');
+const ring2 = document.getElementById('ring-2');
+const transcript = document.getElementById('transcript');
+let emptyState = document.getElementById('empty-state');
+const logoutBtn = document.getElementById('logout-btn');
+const accountChip = document.getElementById('account-chip');
+const gateOverlay = document.getElementById('gate-overlay');
+const totalTimeEl = document.getElementById('total-time');
+const stages = ['whisper', 'gemini', 'preprocess', 'xtts'];
+
+const newConvoBtn = document.getElementById('new-convo-btn');
+const convoListEl = document.getElementById('convo-list');
+const sidebar = document.getElementById('sidebar');
+const sidebarToggle = document.getElementById('sidebar-toggle');
+const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+let isBusy = false;
+
+let sb = null;
+let accessToken = null;
+
+// Conversation state - the frontend always knows which conversation
+// is active, and keeps a local copy of the sidebar list so switching
+// / renaming / deleting doesn't need a full re-fetch every time.
+let activeConversationId = null;
+let conversationsCache = [];
+
+function authHeaders(extra = {}){
+  return Object.assign({ 'Authorization': 'Bearer ' + accessToken }, extra);
+}
+
+function clearEmptyState(){
+  if (emptyState && emptyState.parentNode){
+    emptyState.remove();
+  }
+}
+
+function showEmptyState(){
+  transcript.innerHTML = '';
+  const el = document.createElement('div');
+  el.className = 'empty-state';
+  el.id = 'empty-state';
+  el.textContent = 'Tap the mic and say something to Manasvi.';
+  transcript.appendChild(el);
+  emptyState = el;
+}
+
+// ---------------------------------------------------------------
+// Auth guard - runs before anything else on the page is usable.
+// ---------------------------------------------------------------
+
+async function initAuth(){
+  const cfg = await fetch('/api/public-config').then(r => r.json());
+  sb = supabase.createClient(cfg.supabase_url, cfg.supabase_anon_key);
+
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (!session){
+    window.location.href = 'auth.html';
+    return;
+  }
+
+  accessToken = session.access_token;
+
+  sb.auth.onAuthStateChange((event, newSession) => {
+    if (event === 'SIGNED_OUT'){
+      window.location.href = 'auth.html';
+    } else if (newSession){
+      accessToken = newSession.access_token;
+    }
+  });
+
+const meRes = await fetch('/api/auth/me', {
+    headers: {
+        Authorization: 'Bearer ' + accessToken
+    }
+});
+
+if (!meRes.ok) {
+    await sb.auth.signOut();
+    window.location.href = "auth.html";
+    return;
+}
+
+const { user } = await meRes.json();
+
+if (!user.onboarding_completed) {
+    window.location.href = "onboarding.html";
+    return;
+}
+
+const displayName =
+    [user.first_name, user.last_name]
+        .filter(Boolean)
+        .join(" ") || user.email;
+
+accountChip.textContent = displayName;
+
+gateOverlay.style.display = "none";
+
+  // Determine the active conversation (creating one if this is a
+  // brand new user), load its messages, and populate the sidebar.
+  const activeRes = await fetch('/api/conversations/active', { headers: authHeaders() });
+  const { conversation } = await activeRes.json();
+  activeConversationId = conversation.id;
+
+  await Promise.all([
+    loadConversationList(),
+    loadConversationMessages(activeConversationId),
+  ]);
+}
+
+logoutBtn.addEventListener('click', async () => {
+  await sb.auth.signOut();
+  window.location.href = 'auth.html';
+});
+
+// ---------------------------------------------------------------
+// Sidebar / conversation management
+// ---------------------------------------------------------------
+
+function groupLabelFor(dateStr){
+  const date = new Date(dateStr);
+  const now = new Date();
+  const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+  const dayDiff = (startOfDay(now) - startOfDay(date)) / 86400000;
+
+  if (dayDiff <= 0) return 'Today';
+  if (dayDiff === 1) return 'Yesterday';
+  if (dayDiff <= 7) return 'Previous 7 Days';
+  return 'Older';
+}
+
+function renderConvoList(){
+  convoListEl.innerHTML = '';
+
+  if (conversationsCache.length === 0){
+    const empty = document.createElement('div');
+    empty.className = 'convo-empty';
+    empty.textContent = 'No conversations yet.';
+    convoListEl.appendChild(empty);
+    return;
+  }
+
+  const groups = ['Today', 'Yesterday', 'Previous 7 Days', 'Older'];
+  const buckets = { 'Today': [], 'Yesterday': [], 'Previous 7 Days': [], 'Older': [] };
+
+  conversationsCache.forEach(c => {
+    buckets[groupLabelFor(c.updated_at)].push(c);
+  });
+
+  groups.forEach(group => {
+    const items = buckets[group];
+    if (items.length === 0) return;
+
+    const label = document.createElement('div');
+    label.className = 'convo-group-label';
+    label.textContent = group;
+    convoListEl.appendChild(label);
+
+    items.forEach(c => convoListEl.appendChild(renderConvoItem(c)));
+  });
+}
+
+function renderConvoItem(conversation){
+  const item = document.createElement('div');
+  item.className = 'convo-item' + (conversation.id === activeConversationId ? ' active' : '');
+  item.dataset.id = conversation.id;
+
+  const title = document.createElement('span');
+  title.className = 'convo-title';
+  title.textContent = conversation.title || 'New Conversation';
+  item.appendChild(title);
+
+  const actions = document.createElement('div');
+  actions.className = 'convo-actions';
+
+  const renameBtn = document.createElement('button');
+  renameBtn.className = 'convo-action-btn';
+  renameBtn.type = 'button';
+  renameBtn.setAttribute('aria-label', 'Rename conversation');
+  renameBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+  renameBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    renameConversation(conversation.id, conversation.title);
+  });
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'convo-action-btn';
+  deleteBtn.type = 'button';
+  deleteBtn.setAttribute('aria-label', 'Delete conversation');
+  deleteBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
+  deleteBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    deleteConversation(conversation.id);
+  });
+
+  actions.appendChild(renameBtn);
+  actions.appendChild(deleteBtn);
+  item.appendChild(actions);
+
+  item.addEventListener('click', () => {
+    if (conversation.id === activeConversationId) {
+      closeSidebarOnMobile();
+      return;
+    }
+    activeConversationId = conversation.id;
+    renderConvoList();
+    loadConversationMessages(conversation.id);
+    closeSidebarOnMobile();
+  });
+
+  return item;
+}
+
+async function loadConversationList(){
+  const res = await fetch('/api/conversations', { headers: authHeaders() });
+  if (!res.ok) return;
+  const { conversations } = await res.json();
+  conversationsCache = conversations;
+  renderConvoList();
+}
+
+async function loadConversationMessages(conversationId){
+  const res = await fetch(`/api/conversations/${conversationId}`, { headers: authHeaders() });
+  if (!res.ok) return;
+
+  const { messages } = await res.json();
+  showEmptyState();
+
+  if (messages.length > 0){
+    clearEmptyState();
+    messages.forEach(m => {
+      addBubble({ role: m.role, text: m.message }, { autoplay: false });
+    });
+  }
+
+  resetPipeline();
+  setState('idle');
+}
+
+async function createNewConversation(){
+  const res = await fetch('/api/conversations', { method: 'POST', headers: authHeaders() });
+  if (!res.ok) return;
+
+  const { conversation } = await res.json();
+  activeConversationId = conversation.id;
+  conversationsCache.unshift(conversation);
+  renderConvoList();
+  showEmptyState();
+  resetPipeline();
+  setState('idle');
+  closeSidebarOnMobile();
+}
+
+async function renameConversation(conversationId, currentTitle){
+  const nextTitle = prompt('Rename conversation', currentTitle || '');
+  if (nextTitle === null || !nextTitle.trim()) return;
+
+  const res = await fetch(`/api/conversations/${conversationId}`, {
+    method: 'PATCH',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ title: nextTitle.trim() }),
+  });
+  if (!res.ok) return;
+
+  await loadConversationList();
+}
+
+async function deleteConversation(conversationId){
+  if (!confirm('Delete this conversation? This cannot be undone.')) return;
+
+  const res = await fetch(`/api/conversations/${conversationId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  if (!res.ok) return;
+
+  conversationsCache = conversationsCache.filter(c => c.id !== conversationId);
+
+  if (conversationId === activeConversationId){
+    if (conversationsCache.length > 0){
+      activeConversationId = conversationsCache[0].id;
+      await loadConversationMessages(activeConversationId);
+    } else {
+      const activeRes = await fetch('/api/conversations/active', { headers: authHeaders() });
+      const { conversation } = await activeRes.json();
+      activeConversationId = conversation.id;
+      conversationsCache = [conversation];
+      showEmptyState();
+    }
+  }
+
+  renderConvoList();
+}
+
+function openSidebar(){
+  sidebar.classList.add('open');
+  sidebarBackdrop.classList.add('open');
+}
+function closeSidebar(){
+  sidebar.classList.remove('open');
+  sidebarBackdrop.classList.remove('open');
+}
+function closeSidebarOnMobile(){
+  if (window.innerWidth <= 860) closeSidebar();
+}
+
+newConvoBtn.addEventListener('click', createNewConversation);
+sidebarToggle.addEventListener('click', () => {
+  sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+});
+sidebarBackdrop.addEventListener('click', closeSidebar);
+
+function setState(mode){
+  // mode: 'idle' | 'listen' | 'think' | 'speak' | 'error'
+  statusDot.className = 'status-dot' + (mode !== 'idle' ? ' ' + mode : '');
+  micBtn.classList.remove('recording', 'thinking', 'speaking');
+  ring1.classList.remove('active', 'speak', 'think');
+  ring2.classList.remove('active', 'speak', 'think');
+
+  if (mode === 'listen'){
+    micBtn.classList.add('recording');
+    ring1.classList.add('active');
+    ring2.classList.add('active');
+    stateLabel.textContent = 'Listening — tap to stop';
+  } else if (mode === 'think'){
+    micBtn.classList.add('thinking');
+    ring1.classList.add('active', 'think');
+    stateLabel.textContent = 'Thinking';
+  } else if (mode === 'speak'){
+    micBtn.classList.add('speaking');
+    ring1.classList.add('active', 'speak');
+    stateLabel.textContent = 'Speaking';
+  } else if (mode === 'error'){
+    stateLabel.textContent = 'Something went wrong — tap to retry';
+  } else {
+    stateLabel.textContent = 'Tap to talk';
+  }
+}
+
+function resetPipeline(){
+  stages.forEach(name => {
+    const el = document.querySelector(`.stage[data-stage="${name}"]`);
+    el.classList.remove('active', 'done');
+    el.querySelector('.stage-time').textContent = '\u00A0';
+  });
+  totalTimeEl.textContent = '';
+}
+
+function markStageActive(name){
+  const el = document.querySelector(`.stage[data-stage="${name}"]`);
+  el.classList.add('active');
+}
+
+function markStageDone(name, seconds){
+  const el = document.querySelector(`.stage[data-stage="${name}"]`);
+  el.classList.remove('active');
+  el.classList.add('done');
+  el.querySelector('.stage-time').textContent = seconds.toFixed(2) + 's';
+}
+
+function addBubble({ role, text, audioUrl }, options = {}){
+  const { autoplay = true } = options;
+
+  clearEmptyState();
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble ' + role;
+
+  const roleLabel = document.createElement('span');
+  roleLabel.className = 'role';
+  roleLabel.textContent = role === 'user' ? 'You' : (role === 'assistant' ? 'Manasvi' : 'Error');
+  bubble.appendChild(roleLabel);
+
+  const body = document.createElement('div');
+  body.textContent = text;
+  bubble.appendChild(body);
+
+  if (audioUrl){
+    const row = document.createElement('div');
+    row.className = 'play-row';
+    const audioEl = document.createElement('audio');
+    audioEl.controls = true;
+    audioEl.src = audioUrl;
+    audioEl.autoplay = autoplay;
+    row.appendChild(audioEl);
+    bubble.appendChild(row);
+
+    audioEl.addEventListener('play', () => setState('speak'));
+    audioEl.addEventListener('ended', () => setState('idle'));
+  }
+
+  transcript.appendChild(bubble);
+  transcript.scrollTop = transcript.scrollHeight;
+}
+
+async function startRecording(){
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) audioChunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      const blob = new Blob(audioChunks, { type: 'audio/webm' });
+      sendAudio(blob);
+    };
+
+    mediaRecorder.start();
+    isRecording = true;
+    setState('listen');
+  } catch (err){
+    console.error(err);
+    setState('error');
+    addBubble({ role: 'error', text: 'Microphone access was denied or is unavailable.' });
+  }
+}
+
+function stopRecording(){
+  if (mediaRecorder && isRecording){
+    isRecording = false;
+    mediaRecorder.stop();
+  }
+}
+
+async function sendAudio(blob){
+  isBusy = true;
+  micBtn.disabled = true;
+  resetPipeline();
+  setState('think');
+  markStageActive('whisper');
+
+  const formData = new FormData();
+  formData.append('audio', blob, 'input.webm');
+  if (activeConversationId) formData.append('conversation_id', activeConversationId);
+
+  try {
+    const res = await fetch('/api/converse', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + accessToken },
+      body: formData,
+    });
+    const data = await res.json();
+
+    if (!res.ok){
+      throw new Error(data.detail || 'Request failed.');
+    }
+
+    // The backend is the source of truth for which conversation this
+    // turn belonged to (matters the first time, before we have one)
+    // and for its auto-generated title.
+    if (data.conversation_id){
+      activeConversationId = data.conversation_id;
+
+      const cached = conversationsCache.find(c => c.id === activeConversationId);
+      if (cached){
+        cached.title = data.conversation_title;
+        cached.updated_at = new Date().toISOString();
+      } else {
+        conversationsCache.unshift({
+          id: activeConversationId,
+          title: data.conversation_title,
+          updated_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        });
+      }
+      renderConvoList();
+    }
+
+    // We only get timings after the fact, so light up stages in order
+    // using the real per-stage durations returned by the server.
+    const t = data.timings || {};
+    markStageDone('whisper', t.whisper || 0);
+    addBubble({ role: 'user', text: data.user_text });
+
+    markStageActive('gemini');
+    await tinyDelay();
+    markStageDone('gemini', t.gemini || 0);
+
+    markStageActive('preprocess');
+    await tinyDelay();
+    markStageDone('preprocess', t.preprocess || 0);
+
+    markStageActive('xtts');
+    await tinyDelay();
+    markStageDone('xtts', t.xtts || 0);
+
+    if (t.total) totalTimeEl.textContent = 'total ' + t.total.toFixed(2) + 's';
+
+    addBubble({ role: 'assistant', text: data.reply_text, audioUrl: data.audio_url });
+
+  } catch (err){
+    console.error(err);
+    setState('error');
+    addBubble({ role: 'error', text: err.message || 'Something went wrong talking to Manasvi.' });
+  } finally {
+    isBusy = false;
+    micBtn.disabled = false;
+    if (statusDot.className.indexOf('speak') === -1){
+      setState('idle');
+    }
+  }
+}
+
+function tinyDelay(){
+  return new Promise(r => setTimeout(r, 220));
+}
+
+micBtn.addEventListener('click', () => {
+  if (isBusy) return;
+  if (isRecording){
+    stopRecording();
+  } else {
+    startRecording();
+  }
+});
+
+initAuth();
+</script>
+
+</body>
+</html>
